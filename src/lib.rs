@@ -6,25 +6,36 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
 
-pub trait MxElement: num::PrimInt + std::fmt::Debug {}
-impl MxElement for u8 {}
-impl MxElement for u16 {}
-impl MxElement for u32 {}
-impl MxElement for u64 {}
-
-fn search_sorted_iter<T>(it: std::slice::Iter<T>, n: T) -> Option<usize>
-where
-    T: MxElement,
+// pub trait MxElement: num::Unsigned + num::PrimInt + std::fmt::Debug {
+pub trait MxElement:
+    std::ops::AddAssign
+    + num::One
+    + num::Unsigned
+    + num::PrimInt
+    + std::cmp::PartialOrd
+    + std::fmt::Debug
 {
-    for (i, el) in it.enumerate() {
-        if *el == n {
-            return Some(i);
-        }
-        if *el > n {
-            return None;
-        }
-    }
-    None
+    // type Range: Iterator<Item = Self>;
+}
+
+impl MxElement for u8 {
+    //     type Range = std::ops::Range<u8>;
+}
+
+impl MxElement for u16 {
+    // type Range = std::ops::Range<u16>;
+}
+impl MxElement for u32 {
+    // type Range = std::ops::Range<u32>;
+}
+
+impl MxElement for usize {
+    // type Range = std::ops::Range<usize>;
+}
+
+#[cfg(target_pointer_width = "64")]
+impl MxElement for u64 {
+    // type Range = std::ops::Range<u64>;
 }
 
 fn compress<T>(row: Vec<T>, col: Vec<T>, n: usize) -> (Vec<usize>, Vec<T>)
@@ -97,16 +108,18 @@ where
     // we don't want to consume self, and we need to ensure that the iterator lasts as long as the
     // struct. Shorthand for this is pub fn row(&self, r: usize) -> impl Iterator<Item = T> + '_.
     // pub fn row<'a>(&'a self, r: usize) -> impl Iterator<Item = T> + 'a
-    pub fn row<'a>(&'a self, r: usize) -> std::slice::Iter<T>
+    pub fn row(&self, r: usize) -> &[T]
     where
         T: MxElement,
     {
         if r > self.indptr.len() - 1 {
             panic!("Row {} is out of bounds (max {})", r, self.indptr.len() - 1)
         }
-        let row_start = self.indptr[r];
-        let row_end = self.indptr[r + 1];
-        self.indices[row_start..row_end].into_iter()
+
+        let row_start = unsafe { self.indptr.get_unchecked(r) };
+        let row_end = unsafe { self.indptr.get_unchecked(r + 1) };
+
+        &self.indices[*row_start..*row_end]
     }
 
     pub fn row_len(&self, r: usize) -> T
@@ -127,7 +140,7 @@ where
     {
         let row = self.row(r);
         let tc = T::from(c).expect("invalid vertex");
-        search_sorted_iter(row, tc).is_some()
+        row.binary_search(&tc).is_ok()
     }
 
     pub fn from_edge_file(fname: &Path) -> Self {
