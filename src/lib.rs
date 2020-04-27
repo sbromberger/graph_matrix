@@ -14,6 +14,7 @@ pub trait MxElement:
     + num::PrimInt
     + std::cmp::PartialOrd
     + std::fmt::Debug
+    + std::fmt::Display
 {
     // type Range: Iterator<Item = Self>;
 }
@@ -108,16 +109,17 @@ where
     // we don't want to consume self, and we need to ensure that the iterator lasts as long as the
     // struct. Shorthand for this is pub fn row(&self, r: usize) -> impl Iterator<Item = T> + '_.
     // pub fn row<'a>(&'a self, r: usize) -> impl Iterator<Item = T> + 'a
-    pub fn row(&self, r: usize) -> &[T]
+    pub fn row(&self, r: T) -> &[T]
     where
         T: MxElement,
     {
-        if r > self.indptr.len() - 1 {
+        let ru = r.to_usize().unwrap();
+        if ru > self.indptr.len() - 1 {
             panic!("Row {} is out of bounds (max {})", r, self.indptr.len() - 1)
         }
 
-        let row_start = unsafe { self.indptr.get_unchecked(r) };
-        let row_end = unsafe { self.indptr.get_unchecked(r + 1) };
+        let row_start = unsafe { self.indptr.get_unchecked(ru) };
+        let row_end = unsafe { self.indptr.get_unchecked(ru + 1) };
 
         &self.indices[*row_start..*row_end]
     }
@@ -134,7 +136,7 @@ where
         T::from(row_end - row_start).expect("Something went wrong.")
     }
 
-    pub fn has_index(&self, r: usize, c: usize) -> bool
+    pub fn has_index(&self, r: T, c: T) -> bool
     where
         T: MxElement,
     {

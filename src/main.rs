@@ -11,4 +11,6 @@ fn main() {
     println!("g = {}", g);
     let h: GraphMatrix<u32> = GraphMatrix::from_edge_file(Path::new(filename));
     println!("h = {}", h);
+    let v = h.row(0);
+    println!("row(0) of h = {:?}", v);
 }
