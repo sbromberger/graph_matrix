@@ -89,9 +89,10 @@ where
 {
     pub fn from_edges(edgelist: Vec<(T, T)>) -> Self {
         // -> GraphMatrix<T, U>  {
-        // assume edgelist is not sorted
+        // assume edgelist is not sorted and not unique
         let mut sorted_edge_list = edgelist;
         sorted_edge_list.sort_unstable();
+        sorted_edge_list.dedup();
         let (ss, ds): (Vec<_>, Vec<_>) = sorted_edge_list.into_iter().unzip();
 
         // println!("ss = {:?}, ds = {:?}", ss, ds);
@@ -105,6 +106,10 @@ where
         // println!("m1 = {:?}, m2 = {:?}, m = {}", m1, m2, m);
         let (indptr, indices) = compress(ss, ds, m);
         GraphMatrix { indptr, indices }
+    }
+    
+    pub fn new(indptr: Vec<usize>, indices: Vec<T>) -> Self {
+        GraphMatrix{ indptr, indices }
     }
     // we don't want to consume self, and we need to ensure that the iterator lasts as long as the
     // struct. Shorthand for this is pub fn row(&self, r: usize) -> impl Iterator<Item = T> + '_.
